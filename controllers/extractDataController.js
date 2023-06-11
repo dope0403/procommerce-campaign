@@ -68,46 +68,56 @@ const whatsappCallback = (req, res) => {
   console.log("callback --->", req.body);
 };
 
+function getFormattedDate() {
+  let date = new Date();
+  let month = (date.getMonth() + 1).toString();
+  let day = date.getDate().toString();
+  let year = date.getFullYear().toString();
+
+  let formattedDate = month + "/" + day + "/" + year;
+  return formattedDate;
+}
+
 const compute = (tenders, users) => {
   userVsTender = {};
+  let formattedDate = getFormattedDate().toString();
 
-  //get the tender cohort
   for (let i = 1; i < tenders.length; ++i) {
     let tender = tenders[i];
-    let overallLocation = tender[1].split(",");
-    //cohort
-    let material = tender[8].toLowerCase().trim();
-    let city = overallLocation[0].toLowerCase().trim();
-    let state = overallLocation[1].toLowerCase().trim();
+    if (tender[9] === formattedDate) {
+      //cohort
+      let overallLocation = tender[1].toLowerCase();
+      let material = tender[8].toLowerCase().trim();
 
-    for (let j = 1; j < users.length; ++j) {
-      let user = users[j];
-      let userCity = user[1].toLowerCase().trim();
-      let userState = user[2].toLowerCase().trim();
-      let userMaterial = user[8].toLowerCase().trim();
+      for (let j = 1; j < users.length; ++j) {
+        let user = users[j];
+        let userCity = user[1].toLowerCase().trim();
+        let userState = user[2].toLowerCase().trim();
+        let userMaterial = user[8].toLowerCase().trim();
 
-      if (
-        city === userCity &&
-        state === userState &&
-        material === userMaterial
-      ) {
-        let link = `https://prcommerce-campaign.com/${i}/${j}`;
-        let tenderName = tender[0].toString();
-        let tenderLocation = tender[1].toString();
-        let tenderDesc = tender[2].toString();
-        let tenderEmd = tender[6].toString();
-        let userId = j;
-        if (userVsTender[user[4]] === undefined) {
-          userVsTender[user[4]] = [];
+        if (
+          (overallLocation.includes(userCity) ||
+            overallLocation.includes(userState)) &&
+          material === userMaterial
+        ) {
+          let link = `https://prcommerce-campaign.com/${i}/${j}`;
+          let tenderName = tender[0].toString();
+          let tenderLocation = tender[1].toString();
+          let tenderDesc = tender[2].toString();
+          let tenderEmd = tender[6].toString();
+          let userId = j;
+          if (userVsTender[user[4]] === undefined) {
+            userVsTender[user[4]] = [];
+          }
+          userVsTender[user[4]].push({
+            link,
+            tenderName,
+            tenderLocation,
+            tenderDesc,
+            tenderEmd,
+            userId,
+          });
         }
-        userVsTender[user[4]].push({
-          link,
-          tenderName,
-          tenderLocation,
-          tenderDesc,
-          tenderEmd,
-          userId,
-        });
       }
     }
   }
