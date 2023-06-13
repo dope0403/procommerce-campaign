@@ -86,21 +86,18 @@ const compute = (tenders, users) => {
     let tender = tenders[i];
     if (tender[9] === formattedDate) {
       //cohort
-      let overallLocation = tender[1].toLowerCase();
-      let material = tender[8].toLowerCase().trim();
+      let overallLocation = tender[1].toString().toLowerCase().trim();
+      let material = tender[8].toString().toLowerCase().trim();
 
       for (let j = 1; j < users.length; ++j) {
         let user = users[j];
-        let userCity = user[1].toLowerCase().trim();
-        let userState = user[2].toLowerCase().trim();
-        let userMaterial = user[8].toLowerCase().trim();
+        let userState = user[2].toString().toLowerCase().trim();
+        let userMaterial = user[8].toString().toLowerCase().trim();
+        let stateComp = overallLocation.includes(userState);
 
-        if (
-          (overallLocation.includes(userCity) ||
-            overallLocation.includes(userState)) &&
-          material === userMaterial
-        ) {
-          let link = `https://prcommerce-campaign.com/${i}/${j}`;
+        let materialComp = material === userMaterial;
+        if (stateComp && materialComp) {
+          let link = `https://prcommerce-campaign.com/${i}/${user[9]}`;
           let tenderName = tender[0].toString();
           let tenderLocation = tender[1].toString();
           let tenderDesc = tender[2].toString();
@@ -125,42 +122,51 @@ const compute = (tenders, users) => {
   return userVsTender;
 };
 
-const createMessageTemplate = (
+const createMessageTemplate = async (
   userVsTender,
   tenderSheetData,
   usersSheetData
 ) => {
-  Object.keys(userVsTender).forEach((key) => {
-    //creating message template
+  Object.keys(userVsTender).forEach(async (key) => {
+    //creating message placeholders
     let userId = userVsTender[key][0]["userId"];
-    let message = `Hi ${usersSheetData[userId][3]}\n\nWe have exciting Tender Opportunities for you in the ${usersSheetData[userId][7]} Category. Click on the links to get tender details.`;
+    let placeholders = [usersSheetData[userId][3], usersSheetData[userId][7]];
     let tenders = userVsTender[key];
     for (let i = 0; i < tenders.length; ++i) {
       let tenderObj = tenders[i];
-      let tenderDetails = `\n\n*Tender Name*: ${tenderObj["tenderName"]}\n*Location*: ${tenderObj["tenderLocation"]}\n*Description*: ${tenderObj["tenderDesc"]}\n*EMD Amount*: ${tenderObj["tenderEmd"]}\n*Link*: ${tenderObj["link"]}\n\n`;
-      message += tenderDetails;
+      placeholders.push(
+        ...[
+          tenderObj["tenderName"],
+          tenderObj["tenderLocation"],
+          tenderObj["tenderDesc"],
+          tenderObj["tenderEmd"],
+          tenderObj["link"],
+        ]
+      );
     }
 
     let data = JSON.stringify({
-      from: process.env.INFOBIP_REGISTERED_PHONE,
-      to: key.toString(),
-      messageId: "a28dd97c-1ffb-4fcf-99f1-0b557ed381da",
-      content: {
-        text: message,
-        whatsapp: {
-          text: message,
-          url: {
-            clickable: true,
+      messages: [
+        {
+          from: "447860099299",
+          to: "919027138976",
+          messageId: "test-message-93847",
+          content: {
+            templateName: "custom_template",
+            templateData: {
+              body: {
+                placeholders,
+              },
+            },
+            language: "en",
           },
+          callbackData: "Callback data",
         },
-      },
-      callbackData: "Callback data",
-      notifyUrl: "https://www.example.com/whatsapp",
+      ],
     });
 
     let config = {
-      method: "post",
-      maxBodyLength: Infinity,
+      method: "POST",
       url: process.env.INFOBIP_BASE_URL,
       headers: {
         Authorization: process.env.INFOBIP_API_KEY,
@@ -170,14 +176,7 @@ const createMessageTemplate = (
       data: data,
     };
 
-    axios
-      .request(config)
-      .then((response) => {
-        console.log(JSON.stringify(response.data));
-      })
-      .catch((error) => {
-        console.log(error);
-      });
+    axios.request(config).then((res) => console.log(res.data));
   });
 };
 
